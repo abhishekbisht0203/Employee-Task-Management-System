@@ -6,6 +6,7 @@ import com.eventxplora.taskmanager.service.EmployeeService;
 import com.eventxplora.taskmanager.service.TaskService;
 import com.eventxplora.taskmanager.service.WorkLogService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,8 +31,42 @@ public class AdminController {
     }
 
     @GetMapping("/employees")
-    public ResponseEntity<List<EmployeeResponse>> getAllEmployees() {
-        return ResponseEntity.ok(employeeService.getAllEmployees());
+    public ResponseEntity<Page<EmployeeResponse>> getAllEmployees(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) String designation,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate joinFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate joinTo,
+            @RequestParam(defaultValue = "createdAt,desc") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(employeeService.getEmployees(search, department, designation, isActive, joinFrom, joinTo, sort, page, size));
+    }
+
+    @GetMapping("/employees/all")
+    public ResponseEntity<List<EmployeeResponse>> getAllEmployeesList() {
+        return ResponseEntity.ok(employeeService.getEmployees(null, null, null, null, null, null, null, 0, Integer.MAX_VALUE).getContent());
+    }
+
+    @GetMapping("/employees/{id}")
+    public ResponseEntity<EmployeeResponse> getEmployee(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getEmployeeById(id));
+    }
+
+    @GetMapping("/employees/{id}/detail")
+    public ResponseEntity<EmployeeDetailResponse> getEmployeeDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getEmployeeDetail(id));
+    }
+
+    @GetMapping("/employees/{id}/tasks")
+    public ResponseEntity<List<TaskResponse>> getEmployeeTasks(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getEmployeeTasks(id));
+    }
+
+    @GetMapping("/employees/{id}/worklogs")
+    public ResponseEntity<List<WorkLogResponse>> getEmployeeWorkLogs(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getEmployeeWorkLogs(id));
     }
 
     @PostMapping("/employees")
@@ -43,6 +78,32 @@ public class AdminController {
     public ResponseEntity<EmployeeResponse> updateEmployee(@PathVariable Long id,
                                                             @Valid @RequestBody UpdateEmployeeRequest request) {
         return ResponseEntity.ok(employeeService.updateEmployee(id, request));
+    }
+
+    @DeleteMapping("/employees/{id}")
+    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+        employeeService.deleteEmployee(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/dashboard/employee-stats")
+    public ResponseEntity<EmployeeStatsResponse> getEmployeeStats() {
+        return ResponseEntity.ok(employeeService.getEmployeeStats());
+    }
+
+    @GetMapping("/employees/departments")
+    public ResponseEntity<List<String>> getDepartments() {
+        return ResponseEntity.ok(employeeService.getAllDepartments());
+    }
+
+    @GetMapping("/employees/designations")
+    public ResponseEntity<List<String>> getDesignations() {
+        return ResponseEntity.ok(employeeService.getAllDesignations());
+    }
+
+    @PatchMapping("/employees/{id}/toggle-status")
+    public ResponseEntity<EmployeeResponse> toggleEmployeeStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.toggleEmployeeStatus(id));
     }
 
     @PostMapping("/tasks")

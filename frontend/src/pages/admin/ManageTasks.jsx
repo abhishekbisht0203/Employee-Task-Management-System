@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTasks, createTask, getEmployees } from '../../api/admin';
+import { getTasks, createTask, getAllEmployeesList } from '../../api/admin';
 import TaskCard from '../../components/TaskCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,7 +20,7 @@ function CreateTaskModal({ open, onClose, onSave }) {
 
   useEffect(() => {
     if (open) {
-      getEmployees().then((res) => setEmployees(res.data)).catch(() => {});
+      getAllEmployeesList().then((res) => setEmployees(res.data)).catch(() => {});
     }
   }, [open]);
 
@@ -201,7 +201,7 @@ export default function ManageTasks() {
 
   useEffect(() => {
     fetchTasks();
-    getEmployees().then((res) => setEmployees(res.data)).catch(() => {});
+    getAllEmployeesList().then((res) => setEmployees(res.data)).catch(() => {});
   }, []);
 
   const showNotif = (message, type = 'success') => {

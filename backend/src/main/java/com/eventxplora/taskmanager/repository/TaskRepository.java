@@ -13,11 +13,16 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificationExecutor<Task> {
     List<Task> findByAssignedToIdOrderByCreatedAtDesc(Long employeeId);
 
+    long countByAssignedToId(Long employeeId);
+    long countByAssignedToIdAndStatus(Long employeeId, TaskStatus status);
+
     @Query("SELECT t FROM Task t WHERE t.assignedTo.id = :employeeId AND t.status != 'COMPLETED' ORDER BY t.createdAt DESC")
     List<Task> findActiveTasksByEmployeeId(@Param("employeeId") Long employeeId);
 
     @Query("SELECT t FROM Task t WHERE t.assignedTo.id = :employeeId AND t.status = 'COMPLETED' ORDER BY t.createdAt DESC")
     List<Task> findCompletedTasksByEmployeeId(@Param("employeeId") Long employeeId);
+
+    List<Task> findByAssignedToIdAndStatus(Long employeeId, TaskStatus status);
 
     long countByStatus(TaskStatus status);
 

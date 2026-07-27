@@ -9,6 +9,8 @@ import com.eventxplora.taskmanager.entity.WorkLog;
 import com.eventxplora.taskmanager.repository.TaskRepository;
 import com.eventxplora.taskmanager.repository.UserRepository;
 import com.eventxplora.taskmanager.repository.WorkLogRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardServiceImpl.class);
 
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
@@ -42,31 +46,63 @@ public class DashboardServiceImpl implements DashboardService {
         long inProgressTasks = taskRepository.countByStatus(TaskStatus.IN_PROGRESS);
         long completedTasks = taskRepository.countByStatus(TaskStatus.COMPLETED);
 
+        log.info("Dashboard stats – employees={}, tasks={}, pending={}, inProgress={}, completed={}",
+                totalEmployees, totalTasks, pendingTasks, inProgressTasks, completedTasks);
+
         resp.setTotalEmployees(totalEmployees);
         resp.setTotalTasks(totalTasks);
         resp.setPendingTasks(pendingTasks);
         resp.setInProgressTasks(inProgressTasks);
         resp.setCompletedTasks(completedTasks);
 
-        resp.setEmployeeGrowth(computeEmployeeGrowth());
-        resp.setTaskCompletion(computeTaskCompletion());
-        resp.setWeeklyProductivity(computeWeeklyProductivity());
-        resp.setActivity(buildActivityFeed());
-        resp.setTrends(computeTrends());
-        resp.setTeamPerformance(computeTeamPerformance(totalTasks, completedTasks, totalEmployees));
-        resp.setRecentEmployees(fetchRecentEmployees());
-        resp.setRecentTasks(fetchRecentTasks());
+        List<Long> growth = computeEmployeeGrowth();
+        log.info("EmployeeGrowth computed: {} entries – {}", growth.size(), growth);
+        resp.setEmployeeGrowth(growth);
+
+        List<Long> completion = computeTaskCompletion();
+        log.info("TaskCompletion computed: {} entries – {}", completion.size(), completion);
+        resp.setTaskCompletion(completion);
+
+        List<Long> weekly = computeWeeklyProductivity();
+        log.info("WeeklyProductivity computed: {} entries – {}", weekly.size(), weekly);
+        resp.setWeeklyProductivity(weekly);
+
+        List<ActivityItem> activity = buildActivityFeed();
+        log.info("ActivityFeed computed: {} items", activity.size());
+        resp.setActivity(activity);
+
+        Trends trends = computeTrends();
+        log.info("Trends computed: employee={}, task={}, pending={}, inProgress={}, completed={}",
+                trends.getEmployeeTrend(), trends.getTaskTrend(), trends.getPendingTrend(),
+                trends.getInProgressTrend(), trends.getCompletedTrend());
+        resp.setTrends(trends);
+
+        TeamPerformance perf = computeTeamPerformance(totalTasks, completedTasks, totalEmployees);
+        log.info("TeamPerformance computed: completionRate={}, onTimeRate={}, attendance={}",
+                perf.getCompletionRate(), perf.getOnTimeRate(), perf.getAttendance());
+        resp.setTeamPerformance(perf);
+
+        List<RecentEmployee> recentEmps = fetchRecentEmployees();
+        log.info("RecentEmployees fetched: {}", recentEmps.size());
+        resp.setRecentEmployees(recentEmps);
+
+        List<TaskResponse> recentT = fetchRecentTasks();
+        log.info("RecentTasks fetched: {}", recentT.size());
+        resp.setRecentTasks(recentT);
 
         return resp;
     }
 
     private List<Long> computeEmployeeGrowth() {
         LocalDateTime startOfYear = LocalDate.now().withDayOfYear(1).atStartOfDay();
+        log.debug("computeEmployeeGrowth: since={}", startOfYear);
         List<Object[]> rows = userRepository.countEmployeesByMonth(startOfYear);
+        log.debug("computeEmployeeGrowth: raw rows count={}", rows.size());
         Map<Integer, Long> monthMap = new HashMap<>();
         for (Object[] row : rows) {
             int month = ((Number) row[0]).intValue();
             long count = ((Number) row[1]).longValue();
+            log.debug("computeEmployeeGrowth: month={}, count={}", month, count);
             monthMap.put(month, count);
         }
         List<Long> result = new ArrayList<>(12);
@@ -78,11 +114,14 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<Long> computeTaskCompletion() {
         LocalDateTime startOfYear = LocalDate.now().withDayOfYear(1).atStartOfDay();
+        log.debug("computeTaskCompletion: since={}", startOfYear);
         List<Object[]> rows = taskRepository.countCompletedTasksByMonth(startOfYear);
+        log.debug("computeTaskCompletion: raw rows count={}", rows.size());
         Map<Integer, Long> monthMap = new HashMap<>();
         for (Object[] row : rows) {
             int month = ((Number) row[0]).intValue();
             long count = ((Number) row[1]).longValue();
+            log.debug("computeTaskCompletion: month={}, count={}", month, count);
             monthMap.put(month, count);
         }
         List<Long> result = new ArrayList<>(12);
@@ -94,11 +133,14 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<Long> computeWeeklyProductivity() {
         LocalDateTime weekAgo = LocalDate.now().minusDays(6).atStartOfDay();
+        log.debug("computeWeeklyProductivity: since={}", weekAgo);
         List<Object[]> rows = taskRepository.countCompletedTasksByDayOfWeek(weekAgo);
+        log.debug("computeWeeklyProductivity: raw rows count={}", rows.size());
         Map<Integer, Long> dowMap = new HashMap<>();
         for (Object[] row : rows) {
             int dow = ((Number) row[0]).intValue();
             long count = ((Number) row[1]).longValue();
+            log.debug("computeWeeklyProductivity: dow={}, count={}", dow, count);
             dowMap.put(dow, count);
         }
         List<Long> result = new ArrayList<>(7);
@@ -116,24 +158,31 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime prevMonthStart = now.minusMonths(1).withDayOfMonth(1).atStartOfDay();
         LocalDateTime prevMonthEnd = now.withDayOfMonth(1).minusDays(1).atTime(LocalTime.MAX);
 
+        log.debug("computeTrends: cur=[{}, {}], prev=[{}, {}]", curMonthStart, curMonthEnd, prevMonthStart, prevMonthEnd);
+
         long curEmployees = userRepository.countEmployeesCreatedBetween(curMonthStart, curMonthEnd);
         long prevEmployees = userRepository.countEmployeesCreatedBetween(prevMonthStart, prevMonthEnd);
+        log.debug("computeTrends employees: cur={}, prev={}", curEmployees, prevEmployees);
         double employeeTrend = calcTrend(curEmployees, prevEmployees);
 
         long curTasks = taskRepository.countTasksCreatedBetween(curMonthStart, curMonthEnd);
         long prevTasks = taskRepository.countTasksCreatedBetween(prevMonthStart, prevMonthEnd);
+        log.debug("computeTrends tasks: cur={}, prev={}", curTasks, prevTasks);
         double taskTrend = calcTrend(curTasks, prevTasks);
 
         long curPending = taskRepository.countTasksPendingBetween(curMonthStart, curMonthEnd);
         long prevPending = taskRepository.countTasksPendingBetween(prevMonthStart, prevMonthEnd);
+        log.debug("computeTrends pending: cur={}, prev={}", curPending, prevPending);
         double pendingTrend = calcTrend(curPending, prevPending);
 
         long curInProgress = taskRepository.countTasksInProgressBetween(curMonthStart, curMonthEnd);
         long prevInProgress = taskRepository.countTasksInProgressBetween(prevMonthStart, prevMonthEnd);
+        log.debug("computeTrends inProgress: cur={}, prev={}", curInProgress, prevInProgress);
         double inProgressTrend = calcTrend(curInProgress, prevInProgress);
 
         long curCompleted = taskRepository.countTasksCompletedBetween(curMonthStart, curMonthEnd);
         long prevCompleted = taskRepository.countTasksCompletedBetween(prevMonthStart, prevMonthEnd);
+        log.debug("computeTrends completed: cur={}, prev={}", curCompleted, prevCompleted);
         double completedTrend = calcTrend(curCompleted, prevCompleted);
 
         return new Trends(employeeTrend, taskTrend, pendingTrend, inProgressTrend, completedTrend);
@@ -152,6 +201,9 @@ public class DashboardServiceImpl implements DashboardService {
         long activeEmployees = userRepository.findByRoleAndIsActiveTrue(Role.EMPLOYEE).size();
         double attendance = totalEmployees > 0 ? Math.round((double) activeEmployees / totalEmployees * 100.0) : 0.0;
 
+        log.debug("computeTeamPerformance: completionRate={}, onTime={}/{}={}%, active={}/{}=attendance={}%",
+                completionRate, onTime, total, onTimeRate, activeEmployees, totalEmployees, attendance);
+
         return new TeamPerformance(completionRate, onTimeRate, attendance);
     }
 
@@ -159,6 +211,7 @@ public class DashboardServiceImpl implements DashboardService {
         List<ActivityItem> items = new ArrayList<>();
 
         List<Object[]> recentTasks = taskRepository.findRecentTasks();
+        log.debug("buildActivityFeed: {} recent tasks", recentTasks.size());
         for (Object[] row : recentTasks) {
             Long taskId = ((Number) row[0]).longValue();
             String title = (String) row[1];
@@ -170,6 +223,7 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         List<Object[]> recentLogs = workLogRepository.findRecentWorkLogs();
+        log.debug("buildActivityFeed: {} recent work logs", recentLogs.size());
         for (Object[] row : recentLogs) {
             Long employeeId = ((Number) row[2]).longValue();
             String note = (String) row[3];
@@ -184,6 +238,7 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         List<Object[]> recentUsers = userRepository.findRecentUsers();
+        log.debug("buildActivityFeed: {} recent users", recentUsers.size());
         for (Object[] row : recentUsers) {
             String name = (String) row[1];
             Object createdObj = row[5];
@@ -199,7 +254,9 @@ public class DashboardServiceImpl implements DashboardService {
             return Integer.compare(aIdx, bIdx);
         });
 
-        return items.size() > 10 ? items.subList(0, 10) : items;
+        List<ActivityItem> capped = items.size() > 10 ? items.subList(0, 10) : items;
+        log.debug("buildActivityFeed: returning {} activity items", capped.size());
+        return capped;
     }
 
     private String formatTimeAgo(LocalDateTime dateTime) {

@@ -13,6 +13,16 @@ public class WorkLogResponse {
 
     public WorkLogResponse() {}
 
+    public WorkLogResponse(Long id, Long taskId, Long employeeId, String employeeName, String note, String statusAtLog, LocalDateTime loggedAt) {
+        this.id = id;
+        this.taskId = taskId;
+        this.employeeId = employeeId;
+        this.employeeName = employeeName;
+        this.note = note;
+        this.statusAtLog = statusAtLog;
+        this.loggedAt = loggedAt;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getTaskId() { return taskId; }
