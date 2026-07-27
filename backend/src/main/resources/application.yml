@@ -22,6 +22,8 @@ spring:
     baseline-on-migrate: true
 
 app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,https://employee-task-management-system-sand.vercel.app}
   jwt:
     secret: ${JWT_SECRET:4a6f567a446f6553656372657456657279566572795365637265744b6579466f724a57545369676e696e67416e64456e6372797074696f6e}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
