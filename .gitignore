@@ -1,0 +1,42 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+*.log
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.classpath
+.vscode/
+
+# Maven
+.mvn/
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+dist/
+build/
+.npm/
+
+# React / Vite
+frontend/dist/
+
+# Env
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+application-local.yml
+backend/src/main/resources/application-local.yml
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
