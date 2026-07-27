@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gitattributes
+README.md
+plan.md
+docs/
+backend/target/
+backend/.env
+frontend/node_modules/
+frontend/.env
+database/
+*.md
