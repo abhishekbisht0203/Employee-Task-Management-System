@@ -2,10 +2,8 @@ package com.eventxplora.taskmanager.service;
 
 import com.eventxplora.taskmanager.dto.*;
 import com.eventxplora.taskmanager.entity.Role;
-import com.eventxplora.taskmanager.entity.Task;
 import com.eventxplora.taskmanager.entity.TaskStatus;
 import com.eventxplora.taskmanager.entity.User;
-import com.eventxplora.taskmanager.entity.WorkLog;
 import com.eventxplora.taskmanager.repository.TaskRepository;
 import com.eventxplora.taskmanager.repository.UserRepository;
 import com.eventxplora.taskmanager.repository.WorkLogRepository;
@@ -13,13 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
@@ -213,7 +209,6 @@ public class DashboardServiceImpl implements DashboardService {
         List<Object[]> recentTasks = taskRepository.findRecentTasks();
         log.debug("buildActivityFeed: {} recent tasks", recentTasks.size());
         for (Object[] row : recentTasks) {
-            Long taskId = ((Number) row[0]).longValue();
             String title = (String) row[1];
             Object createdObj = row[8];
             String timeLabel = formatTimeAgo(createdObj instanceof java.sql.Timestamp
