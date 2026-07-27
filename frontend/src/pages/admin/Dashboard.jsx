@@ -121,8 +121,10 @@ function AreaChart({ data = [] }) {
   const max = Math.max(...data, 1);
   const width = 400;
   const height = 180;
-  const step = width / (data.length - 1);
-  const points = data.map((v, i) => `${i * step},${height - (v / max) * height}`).join(' ');
+  const step = data.length === 1 ? 0 : width / (data.length - 1);
+  const points = data.length === 1
+    ? `0,${height - (data[0] / max) * height} ${width},${height - (data[0] / max) * height}`
+    : data.map((v, i) => `${i * step},${height - (v / max) * height}`).join(' ');
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[180px]" preserveAspectRatio="none">
