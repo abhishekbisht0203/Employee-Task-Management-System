@@ -13,6 +13,16 @@ A full-stack employee task management application built with Spring Boot (backen
 | Schema Mgmt | Flyway |
 | API Docs | Swagger UI (springdoc-openapi) |
 
+## Screenshots
+
+| Page | Screenshot |
+|------|-----------|
+| Login | ![Login](images/login.png) |
+| Dashboard | ![Dashboard](images/Dashboard.png) |
+| Employees | ![Employees](images/employees.png) |
+| Tasks | ![Tasks](images/tasks.png) |
+| Work Logs | ![Work Logs](images/worklogs.png) |
+
 ## Project Structure
 
 ```
